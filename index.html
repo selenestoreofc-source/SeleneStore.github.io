@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selene Store</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">🌸 Selene Store</div>
+        <div class="nav-links">
+            <button id="btnInicio" class="nav-btn">Inicio</button>
+            <button id="btnAdmin" class="nav-btn hidden">Panel Admin</button>
+            <button id="btnAuth" class="nav-btn">Entrar</button>
+            <button id="btnCart" class="nav-btn">🛒 Carrito (<span id="cartCount">0</span>)</button>
+            <button id="btnLogout" class="nav-btn hidden">Salir</button>
+        </div>
+    </nav>
+
+    <main id="storeSection" class="section active">
+        <header class="hero">
+            <h1>Bienvenido a Selene Store</h1>
+            <p>Descubre nuestra colección con estilo y suavidad.</p>
+        </header>
+        <div class="products-grid" id="productsGrid">
+            <p>Cargando productos...</p>
+        </div>
+    </main>
+
+    <main id="adminSection" class="section hidden">
+        <h2>Panel de Administración</h2>
+        <div class="admin-card">
+            <h3>Agregar Nuevo Producto</h3>
+            <input type="text" id="prodName" placeholder="Nombre del producto">
+            <input type="number" id="prodPrice" placeholder="Precio ($)">
+            <input type="text" id="prodImg" placeholder="URL de la imagen">
+            <button id="btnAddProduct" class="btn-primary">Guardar Producto</button>
+        </div>
+        <h3>Gestión de Productos</h3>
+        <div class="admin-products" id="adminProductsList"></div>
+    </main>
+
+    <div id="authModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" id="closeAuth">&times;</span>
+            <h2 id="authTitle">Iniciar Sesión</h2>
+            <input type="email" id="email" placeholder="Correo electrónico">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button id="btnSubmitAuth" class="btn-primary">Entrar</button>
+            <p class="toggle-auth">¿No tienes cuenta? <span id="toggleAuthMode">Regístrate</span></p>
+        </div>
+    </div>
+
+    <div id="cartModal" class="modal hidden">
+        <div class="modal-content cart-content">
+            <span class="close" id="closeCart">&times;</span>
+            <h2>Tu Carrito 🛍️</h2>
+            <div id="cartItems"></div>
+            <div class="cart-total">
+                <h3>Total: $<span id="cartTotalValue">0.00</span></h3>
+            </div>
+            <button id="btnCheckout" class="btn-whatsapp">Pedir por WhatsApp</button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

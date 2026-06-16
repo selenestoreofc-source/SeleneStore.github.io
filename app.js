@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDSpM4HLZgvvg-DguvQ9W_LUh1nj0HpNao",
   authDomain: "selene-store.firebaseapp.com",
   projectId: "selene-store",
-  storageBucket: "selene-store.firebasestorage.app",
+  storageBucket: "selene-store.appspot.com",
   messagingSenderId: "1026621933672",
   appId: "1:1026621933672:web:33c5d05f6959b187c293dd",
   measurementId: "G-ND7Y9N8WFF"

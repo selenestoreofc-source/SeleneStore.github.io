@@ -24,7 +24,7 @@ const storage = getStorage(app); // Inicializar el almacenamiento de fotos
 // === VARIABLES DE ESTADO ===
 let cart = [];
 let isLoginMode = true;
-const ADMIN_EMAIL = "Selenestoreofc@gmail.com"; 
+const ADMIN_EMAIL = "Helenvictoria.com"; 
 
 // === ELEMENTOS DEL DOM ===
 const productsGrid = document.getElementById('productsGrid');

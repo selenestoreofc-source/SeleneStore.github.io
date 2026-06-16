@@ -1,10 +1,10 @@
-// Importar funciones modulares de Firebase v10
+// Importar funciones modulares de Firebase v10 (Añadido Storage)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// === 1. TU CONFIGURACIÓN DE FIREBASE AQUÍ ===
-// Reemplaza esto con la configuración que te da Firebase
+// === 1. TU CONFIGURACIÓN REAL DE FIREBASE ===
 const firebaseConfig = {
   apiKey: "AIzaSyDSpM4HLZgvvg-DguvQ9W_LUh1nj0HpNao",
   authDomain: "selene-store.firebaseapp.com",
@@ -19,13 +19,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // Inicializar el almacenamiento de fotos
 
 // === VARIABLES DE ESTADO ===
 let cart = [];
 let isLoginMode = true;
-
-// Para fines de prueba, designaremos un correo como administrador
-const ADMIN_EMAIL = "selenestoreofc@gmail.com"; 
+const ADMIN_EMAIL = "Selenestoreoficial@gmail.com"; 
 
 // === ELEMENTOS DEL DOM ===
 const productsGrid = document.getElementById('productsGrid');
@@ -33,13 +32,11 @@ const cartCount = document.getElementById('cartCount');
 const cartItemsContainer = document.getElementById('cartItems');
 const cartTotalValue = document.getElementById('cartTotalValue');
 
-// Navegación y Vistas
 const btnInicio = document.getElementById('btnInicio');
 const btnAdmin = document.getElementById('btnAdmin');
 const storeSection = document.getElementById('storeSection');
 const adminSection = document.getElementById('adminSection');
 
-// Modales
 const authModal = document.getElementById('authModal');
 const cartModal = document.getElementById('cartModal');
 
@@ -48,13 +45,11 @@ btnInicio.onclick = () => switchView(storeSection);
 btnAdmin.onclick = () => switchView(adminSection);
 
 function switchView(view) {
-    // Ocultamos ambas secciones por defecto
     storeSection.classList.add('hidden');
     storeSection.classList.remove('active');
     adminSection.classList.add('hidden');
     adminSection.classList.remove('active');
     
-    // Mostramos únicamente la sección seleccionada
     view.classList.remove('hidden');
     view.classList.add('active');
 }
@@ -93,7 +88,6 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('btnAuth').classList.add('hidden');
         document.getElementById('btnLogout').classList.remove('hidden');
-        // Mostrar panel de admin si es el correo designado
         if (user.email === ADMIN_EMAIL) {
             btnAdmin.classList.remove('hidden');
         }
@@ -101,27 +95,47 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('btnAuth').classList.remove('hidden');
         document.getElementById('btnLogout').classList.add('hidden');
         btnAdmin.classList.add('hidden');
-        switchView(storeSection); // Forzar vista tienda si sale el admin
+        switchView(storeSection);
     }
 });
 
-// === LÓGICA DEL PANEL ADMIN (FIRESTORE) ===
+// === LÓGICA DEL PANEL ADMIN (CON SUBIDA DE ARCHIVOS) ===
 document.getElementById('btnAddProduct').onclick = async () => {
     const name = document.getElementById('prodName').value;
     const price = parseFloat(document.getElementById('prodPrice').value);
-    const img = document.getElementById('prodImg').value || 'https://via.placeholder.com/250x200?text=Selene+Store';
+    const imgFile = document.getElementById('prodImg').files[0]; // Capturar el archivo seleccionado
 
-    if(!name || isNaN(price)) return alert("Por favor ingresa nombre y precio válido");
+    if(!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válido");
+
+    const btnSave = document.getElementById('btnAddProduct');
+    btnSave.innerText = "Subiendo imagen...";
+    btnSave.disabled = true;
+
+    let finalImgUrl = 'https://via.placeholder.com/250x200?text=Selene+Store';
 
     try {
-        await addDoc(collection(db, "products"), { name, price, img });
-        alert("Producto agregado");
-        loadProducts(); // Recargar productos
+        // Si el usuario seleccionó una foto, la subimos a Firebase Storage
+        if (imgFile) {
+            const fileRef = ref(storage, 'productos/' + Date.now() + '_' + imgFile.name);
+            const snapshot = await uploadBytes(fileRef, imgFile);
+            finalImgUrl = await getDownloadURL(snapshot.ref); // Obtenemos el link de la foto subida
+        }
+
+        // Guardamos todo en la base de datos de Firestore
+        await addDoc(collection(db, "products"), { name, price, img: finalImgUrl });
+        alert("¡Producto agregado con éxito con su imagen real!");
+        
+        loadProducts();
+        
+        // Limpiar el formulario
         document.getElementById('prodName').value = '';
         document.getElementById('prodPrice').value = '';
         document.getElementById('prodImg').value = '';
     } catch (e) {
-        alert("Error al agregar: " + e);
+        alert("Error al guardar el producto: " + e.message);
+    } finally {
+        btnSave.innerText = "Guardar Producto";
+        btnSave.disabled = false;
     }
 };
 
@@ -131,46 +145,47 @@ async function deleteProduct(id) {
         loadProducts();
     }
 }
-// Hacer función global para poder llamarla desde el HTML generado
 window.deleteProduct = deleteProduct; 
 
-// === CARGAR PRODUCTOS A LA TIENDA Y ADMIN ===
+// === CARGAR PRODUCTOS ===
 async function loadProducts() {
-    const querySnapshot = await getDocs(collection(db, "products"));
-    productsGrid.innerHTML = '';
-    const adminList = document.getElementById('adminProductsList');
-    adminList.innerHTML = '';
+    try {
+        const querySnapshot = await getDocs(collection(db, "products"));
+        productsGrid.innerHTML = '';
+        const adminList = document.getElementById('adminProductsList');
+        adminList.innerHTML = '';
 
-    if (querySnapshot.empty) {
-        productsGrid.innerHTML = '<p>No hay productos disponibles aún.</p>';
-        return;
+        if (querySnapshot.empty) {
+            productsGrid.innerHTML = '<p>No hay productos disponibles aún.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const prod = doc.data();
+            const id = doc.id;
+
+            productsGrid.innerHTML += `
+                <div class="product-card">
+                    <img src="${prod.img}" alt="${prod.name}">
+                    <h3>${prod.name}</h3>
+                    <p class="price">$${prod.price.toFixed(2)}</p>
+                    <button class="btn-primary" onclick="addToCart('${id}', '${prod.name}', ${prod.price})">Agregar al Carrito</button>
+                </div>
+            `;
+
+            adminList.innerHTML += `
+                <div class="admin-item">
+                    <span>${prod.name} - $${prod.price}</span>
+                    <button class="btn-danger" onclick="deleteProduct('${id}')">Eliminar</button>
+                </div>
+            `;
+        });
+    } catch (error) {
+        console.error("Error cargando productos: ", error);
     }
-
-    querySnapshot.forEach((doc) => {
-        const prod = doc.data();
-        const id = doc.id;
-
-        // Render para la Tienda
-        productsGrid.innerHTML += `
-            <div class="product-card">
-                <img src="${prod.img}" alt="${prod.name}">
-                <h3>${prod.name}</h3>
-                <p class="price">$${prod.price.toFixed(2)}</p>
-                <button class="btn-primary" onclick="addToCart('${id}', '${prod.name}', ${prod.price})">Agregar al Carrito</button>
-            </div>
-        `;
-
-        // Render para el Admin
-        adminList.innerHTML += `
-            <div class="admin-item">
-                <span>${prod.name} - $${prod.price}</span>
-                <button class="btn-danger" onclick="deleteProduct('${id}')">Eliminar</button>
-            </div>
-        `;
-    });
 }
 
-// === LÓGICA DEL CARRITO DE COMPRAS ===
+// === LÓGICA DEL CARRITO ===
 window.addToCart = (id, name, price) => {
     cart.push({ id, name, price });
     updateCart();
@@ -199,17 +214,13 @@ window.removeFromCart = (index) => {
     updateCart();
 };
 
-// Mostrar/Ocultar Carrito
 document.getElementById('btnCart').onclick = () => cartModal.classList.remove('hidden');
 document.getElementById('closeCart').onclick = () => cartModal.classList.add('hidden');
 
-// === LÓGICA DE CHECKOUT POR WHATSAPP ===
+// === CHECKOUT WHATSAPP ===
 document.getElementById('btnCheckout').onclick = () => {
     if (cart.length === 0) return alert("Tu carrito está vacío.");
-
-    // CAMBIA ESTE NÚMERO POR EL TUYO (Ej. 51 para Perú + tu número)
-    const numeroWhatsApp = "51982239117"; 
-    
+    const numeroWhatsApp = "51982239117"; // Cambia por tu número real
     let mensaje = "🌸 *Hola Selene Store, quiero realizar el siguiente pedido:* 🌸\n\n";
     let total = 0;
     
@@ -217,7 +228,6 @@ document.getElementById('btnCheckout').onclick = () => {
         mensaje += `🛍️ 1x ${item.name} - $${item.price.toFixed(2)}\n`;
         total += item.price;
     });
-
     mensaje += `\n💰 *Total a pagar: $${total.toFixed(2)}*`;
     
     const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;

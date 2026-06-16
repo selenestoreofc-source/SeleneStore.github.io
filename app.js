@@ -48,8 +48,14 @@ btnInicio.onclick = () => switchView(storeSection);
 btnAdmin.onclick = () => switchView(adminSection);
 
 function switchView(view) {
+    // Ocultamos ambas secciones por defecto
+    storeSection.classList.add('hidden');
     storeSection.classList.remove('active');
+    adminSection.classList.add('hidden');
     adminSection.classList.remove('active');
+    
+    // Mostramos únicamente la sección seleccionada
+    view.classList.remove('hidden');
     view.classList.add('active');
 }
 
